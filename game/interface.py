@@ -1,3 +1,4 @@
+import os
 from typing import TYPE_CHECKING
 
 from utils.enums import RumorType
@@ -10,12 +11,16 @@ class TextInterface:
     def __init__(self, game: 'TradingGame'):
         self.game = game
 
+    @staticmethod
+    def clear_screen():
+        os.system('cls' if os.name == 'nt' else 'clear')
+
     def display_market(self) -> str:
-        output = [
-            f"=== ДЕНЬ {self.game.market.day} ===",
-            f"Поточний стан ринку: {self.game.market.current_state.get_name()}",
-            "\nАКТИВИ:"
-        ]
+        """Відображення стану ринку"""
+        output = [f"{'=' * 60}", f"{'БІРЖОВИЙ СИМУЛЯТОР':^60}", f"{'=' * 60}",
+                  f"ДЕНЬ: {self.game.market.day:<10} СТАН РИНКУ: {self.game.market.current_state.get_name()}",
+                  f"{'-' * 60}", f"{'АКТИВИ:':<60}", f"{'-' * 60}",
+                  f"{'НАЗВА':<30} {'ТІКЕР':<10} {'ЦІНА':<10} {'ЗМІНА':>8}", f"{'-' * 60}"]
 
         for asset in self.game.market.assets.values():
             price_change = 0
@@ -23,8 +28,8 @@ class TextInterface:
                 prev_price = asset.price_history[-2][1]
                 price_change = ((asset.current_price - prev_price) / prev_price) * 100
 
-            output.append(f"{asset.name} ({asset.ticker}): "
-                          f"₴{asset.current_price:.2f} ({price_change:+.2f}%)")
+            change_str = f"{price_change:+.2f}%"
+            output.append(f"{asset.name:<30} {asset.ticker:<10} ₴{asset.current_price:<10.2f} {change_str:>8}")
 
         output.append("\nПОДІЇ:")
         active_events = [e for e in self.game.market.events if e.is_active()]
@@ -60,11 +65,15 @@ class TextInterface:
         net_worth = player.calculate_net_worth(self.game.market)
 
         output = [
-            f"\n=== {player.name} ===",
-            f"Капітал: ₴{player.capital:.2f}",
-            f"Чиста вартість: ₴{net_worth:.2f}",
-            f"Репутація: {player.reputation:.2f}",
-            "\nПОРТФЕЛЬ:"
+            f"{'-' * 60}",
+            f"{'ІНФОРМАЦІЯ ПРО ГРАВЦЯ':^60}",
+            f"{'-' * 60}",
+            f"ГРАВЕЦЬ: {player.name:<20}",
+            f"КАПІТАЛ: ₴{player.capital:<15.2f} РЕПУТАЦІЯ: {player.reputation:.2f}",
+            f"ЧИСТА ВАРТІСТЬ: ₴{net_worth:<15.2f}",
+            f"{'-' * 60}",
+            f"{'ПОРТФЕЛЬ АКТИВІВ':^60}",
+            f"{'-' * 60}"
         ]
 
         if player.portfolio:
@@ -75,17 +84,6 @@ class TextInterface:
                     output.append(f"- {asset.name} ({asset.ticker}): {quantity} акцій = ₴{value:.2f}")
         else:
             output.append("- Порожній портфель")
-
-        output.append("\nКОРОТКІ ПОЗИЦІЇ:")
-        if player.short_positions:
-            for asset_id, (quantity, price) in player.short_positions.items():
-                if asset_id in self.game.market.assets:
-                    asset = self.game.market.assets[asset_id]
-                    current_pl = quantity * (price - asset.current_price)
-                    output.append(f"- {asset.name} ({asset.ticker}): {quantity} акцій @ ₴{price:.2f} "
-                                  f"P/L: ₴{current_pl:+.2f}")
-        else:
-            output.append("- Немає відкритих коротких позицій")
 
         output.append("\nІНВЕСТИЦІЇ:")
         if player.investor_funds:
@@ -113,13 +111,11 @@ class TextInterface:
             "\nДОСТУПНІ ДІЇ:\n"
             "1. Купити актив\n"
             "2. Продати актив\n"
-            "3. Відкрити коротку позицію\n"
-            "4. Закрити коротку позицію\n"
-            "5. Поширити чутку\n"
-            "6. Залучити інвестиції\n"
-            "7. Повернути інвестиції\n"
-            "8. Наступний день\n"
-            "9. Зберегти гру\n"
+            "3. Поширити чутку\n"
+            "4. Залучити інвестиції\n"
+            "5. Повернути інвестиції\n"
+            "6. Наступний день\n"
+            "7. Зберегти гру\n"
             "0. Вийти з гри\n"
             "\nВаш вибір: "
         )
@@ -166,6 +162,7 @@ class TextInterface:
                     print(f"Успішно куплено {quantity} акцій {asset.ticker} за ₴{asset.current_price * quantity:.2f}")
                 else:
                     print("Не вдалося виконати покупку. Перевірте, чи вистачає коштів.")
+                input("\nНатисніть Enter для продовження...")
 
         elif choice == "2":
             if not player.portfolio:
@@ -210,92 +207,9 @@ class TextInterface:
                     print(f"Успішно продано {quantity} акцій {asset.ticker} за ₴{asset.current_price * quantity:.2f}")
                 else:
                     print("Не вдалося виконати продаж.")
+                input("\nНатисніть Enter для продовження...")
 
         elif choice == "3":
-            print("\nДоступні активи для короткої позиції:")
-            for i, asset in enumerate(self.game.market.assets.values()):
-                print(f"{i + 1}. {asset.name} ({asset.ticker}): ₴{asset.current_price:.2f}")
-
-            asset_choice = input("Виберіть номер активу (або 0 для скасування): ")
-            if asset_choice == "0" or not asset_choice.isdigit():
-                return False
-
-            asset_index = int(asset_choice) - 1
-            if 0 <= asset_index < len(self.game.market.assets):
-                asset = list(self.game.market.assets.values())[asset_index]
-
-                # Розрахунок максимальної кількості акцій для короткої позиції
-                # (50% застави від вартості позиції)
-                max_shares = int(player.capital / (asset.current_price * 0.5))
-                print(f"У вас є ₴{player.capital:.2f}. Ви можете відкрити коротку позицію до {max_shares} акцій.")
-
-                quantity_str = input(f"Скільки акцій {asset.ticker} ви хочете продати в короткій позиції?: ")
-                if not quantity_str.isdigit():
-                    return False
-
-                quantity = int(quantity_str)
-                if quantity <= 0:
-                    return False
-
-                success = self.game.player_turn(
-                    player_index,
-                    "short",
-                    asset_id=asset.id,
-                    quantity=quantity
-                )
-
-                if success:
-                    print(f"Успішно відкрито коротку позицію по {quantity} акціям {asset.ticker}")
-                else:
-                    print("Не вдалося відкрити коротку позицію. Перевірте, чи вистачає коштів.")
-
-        elif choice == "4":
-            # Закриття короткої позиції
-            if not player.short_positions:
-                print("У вас немає відкритих коротких позицій!")
-                return False
-
-            print("\nВаші короткі позиції:")
-            short_assets = []
-
-            for i, (asset_id, (quantity, price)) in enumerate(player.short_positions.items()):
-                if asset_id in self.game.market.assets:
-                    asset = self.game.market.assets[asset_id]
-                    short_assets.append(asset)
-                    current_pl = quantity * (price - asset.current_price)
-                    print(f"{i + 1}. {asset.name} ({asset.ticker}): {quantity} акцій @ ₴{price:.2f} "
-                          f"Поточний P/L: ₴{current_pl:+.2f}")
-
-            asset_choice = input("Виберіть номер позиції для закриття (або 0 для скасування): ")
-            if asset_choice == "0" or not asset_choice.isdigit():
-                return False
-
-            asset_index = int(asset_choice) - 1
-            if 0 <= asset_index < len(short_assets):
-                asset = short_assets[asset_index]
-                current_quantity = player.short_positions[asset.id][0]
-
-                quantity_str = input(f"Скільки акцій {asset.ticker} ви хочете закрити? (Відкрито {current_quantity}): ")
-                if not quantity_str.isdigit():
-                    return False
-
-                quantity = int(quantity_str)
-                if quantity <= 0 or quantity > current_quantity:
-                    return False
-
-                success = self.game.player_turn(
-                    player_index,
-                    "cover",
-                    asset_id=asset.id,
-                    quantity=quantity
-                )
-
-                if success:
-                    print(f"Успішно закрито короткі позиції по {quantity} акціям {asset.ticker}")
-                else:
-                    print("Не вдалося закрити коротку позицію.")
-
-        elif choice == "5":
             # Поширення чутки
             print("\nПоширення чутки про актив")
             print("Ваша репутація:", player.reputation)
@@ -350,8 +264,9 @@ class TextInterface:
                             print("УВАГА: Якщо ця неправдива чутка буде розкрита, ваша репутація постраждає!")
                     else:
                         print("Не вдалося поширити чутку.")
+                    input("\nНатисніть Enter для продовження...")
 
-        elif choice == "6":
+        elif choice == "4":
             # Залучення інвестицій
             if not self.game.investors:
                 print("Немає доступних інвесторів!")
@@ -401,7 +316,7 @@ class TextInterface:
                 else:
                     print("Не вдалося залучити інвестиції.")
 
-        elif choice == "7":
+        elif choice == "5":
             # Повернення інвестицій
             if not player.investor_funds:
                 print("У вас немає залучених інвестицій для повернення!")
@@ -449,7 +364,7 @@ class TextInterface:
                 else:
                     print("Не вдалося повернути інвестиції.")
 
-        elif choice == "8":
+        elif choice == "6":
             # Наступний день
             self.game.next_day()
 
@@ -458,7 +373,7 @@ class TextInterface:
 
             return True
 
-        elif choice == "9":
+        elif choice == "7":
             # Збереження гри
             filename = input("Введіть ім'я файлу для збереження: ")
             if not filename:
@@ -488,6 +403,7 @@ class TextInterface:
         running = True
 
         while running and not self.game.game_over:
+            self.clear_screen()
             print("\n" + "=" * 50)
             print(self.display_market())
 

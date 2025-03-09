@@ -63,7 +63,7 @@ class BearMarketState(MarketState):
         # У ведмежому ринку ціни мають тенденцію до падіння
         for asset in market.assets.values():
             # Більше активів падають, ніж зростають, з більшою амплітудою
-            change = random.uniform(-1.5, 0.5)
+            change = random.uniform(-1.0, 4.0)
             asset.update_price(change)
 
     def process_event(self, market: 'Market', event: 'Event') -> None:

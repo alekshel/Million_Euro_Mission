@@ -8,7 +8,7 @@ def create_default_scenario() -> ScenarioBuilder:
 
     builder.create_market()
 
-    builder.add_player("Трейдер", 10000.0)
+    builder.add_player("Трейдер", 25000.0)
 
     assets_data = [
         {"type": AssetType.STOCK, "name": "Нафта і Газ Корпорація", "ticker": "НГК", "price": 125.50},
@@ -32,7 +32,7 @@ def create_default_scenario() -> ScenarioBuilder:
             "type": EventType.POLITICAL,
             "title": "Зміна політичного курсу",
             "description": "Новий уряд оголосив про зміну економічного курсу країни.",
-            "impact": 3.5,
+            "impact": 7.0,
             "duration": 5,
             "affected_assets": [assets_data[0]["ticker"], assets_data[2]["ticker"]]
         },
@@ -48,7 +48,7 @@ def create_default_scenario() -> ScenarioBuilder:
             "type": EventType.TECHNOLOGICAL,
             "title": "Проривна технологія",
             "description": "Анонсовано проривну технологію у сфері штучного інтелекту.",
-            "impact": 5.0,
+            "impact": 12.0,
             "duration": 4,
             "affected_assets": [assets_data[1]["ticker"]]
         },
