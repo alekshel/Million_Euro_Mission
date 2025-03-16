@@ -83,86 +83,37 @@ class GameStateAdapter:
 
     @staticmethod
     def deserialize_game(game_state: Dict, game: 'TradingGame') -> None:
-        from patterns.state import BullMarketState, BearMarketState, VolatileMarketState
-        from models.asset import Stock, Cryptocurrency, ForexPair, Commodity
-        from models.player import Player, Investor
-        from models.event import Event, Rumor
-        from utils.enums import EventType, RumorType
+        """Відновлює стан гри з серіалізованого формату"""
+        from patterns.state import MarketState
+        from models.asset import Asset
 
         game.market.day = game_state['day']
 
-        if game_state['market_state'] == "Бичачий":
-            game.market.current_state = BullMarketState()
-        elif game_state['market_state'] == "Ведмежий":
-            game.market.current_state = BearMarketState()
-        elif game_state['market_state'] == "Волатильний":
-            game.market.current_state = VolatileMarketState()
+        market_states = {
+            cls.get_name(): cls for cls in [
+                cls() for cls in MarketState.__subclasses__()
+            ]
+        }
+
+        if game_state['market_state'] in market_states:
+            game.market.current_state = market_states[game_state['market_state']]
+        else:
+            game.market.current_state = next(iter(market_states.values()))
 
         game.market.assets = {}
         for asset_data in game_state['assets']:
-            asset = None
+            asset_classes = {
+                cls.__name__: cls for cls in Asset.__subclasses__()
+            }
 
-            if asset_data['type'] == "Stock":
-                asset = Stock(asset_data['name'], asset_data['ticker'], asset_data['initial_price'])
-            elif asset_data['type'] == "Cryptocurrency":
-                asset = Cryptocurrency(asset_data['name'], asset_data['ticker'], asset_data['initial_price'])
-            elif asset_data['type'] == "ForexPair":
-                asset = ForexPair(asset_data['name'], asset_data['ticker'], asset_data['initial_price'])
-            elif asset_data['type'] == "Commodity":
-                asset = Commodity(asset_data['name'], asset_data['ticker'], asset_data['initial_price'])
+            if asset_data['type'] in asset_classes:
+                asset_class = asset_classes[asset_data['type']]
+                asset = asset_class(
+                    asset_data['name'],
+                    asset_data['ticker'],
+                    asset_data['initial_price']
+                )
 
-            asset.id = asset_data['id']
-            asset.current_price = asset_data['current_price']
-            game.market.assets[asset.id] = asset
-
-        game.players = []
-        for player_data in game_state['players']:
-            player = Player(player_data['name'], player_data['capital'])
-            player.id = player_data['id']
-            player.portfolio = player_data['portfolio']
-            player.short_positions = player_data['short_positions']
-            player.reputation = player_data['reputation']
-            player.investor_funds = player_data['investor_funds']
-            player.game_over = player_data['game_over']
-            player.prison = player_data['prison']
-            game.players.append(player)
-            game.market.attach(player)
-
-        game.investors = []
-        for investor_data in game_state['investors']:
-            investor = Investor(
-                investor_data['name'],
-                investor_data['capital'],
-                investor_data['risk_tolerance']
-            )
-            investor.id = investor_data['id']
-            investor.satisfaction = investor_data['satisfaction']
-            game.investors.append(investor)
-
-        game.market.events = []
-        for event_data in game_state['events']:
-            event = Event(
-                event_type=getattr(EventType, event_data['type']),
-                title=event_data['title'],
-                description=event_data['description'],
-                impact=event_data['impact'],
-                duration=event_data['duration'],
-                affected_assets=event_data['affected_assets']
-            )
-            event.id = event_data['id']
-            event.remaining_duration = event_data['remaining_duration']
-            game.market.events.append(event)
-
-        game.market.rumors = []
-        for rumor_data in game_state['rumors']:
-            rumor = Rumor(
-                creator_id=rumor_data['creator_id'],
-                asset_id=rumor_data['asset_id'],
-                rumor_type=getattr(RumorType, rumor_data['type']),
-                content=rumor_data['content'],
-                is_true=rumor_data['is_true']
-            )
-            rumor.id = rumor_data['id']
-            rumor.credibility = rumor_data['credibility']
-            rumor.is_discovered = rumor_data['is_discovered']
-            game.market.rumors.append(rumor)
+                asset.id = asset_data['id']
+                asset.current_price = asset_data['current_price']
+                game.market.assets[asset.id] = asset
