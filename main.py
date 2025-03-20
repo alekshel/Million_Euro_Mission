@@ -45,6 +45,7 @@ def main():
         game = TradingGame(scenario_builder)
         interface = TextInterface(game)
         interface.run_game()
+    # Це if-else ladder, Conditional Complexity code smell. Треба застосовувати Chain of Responsibility
 
     elif choice == "4":
         # Завантаження гри
@@ -55,6 +56,7 @@ def main():
             os.makedirs(saves_dir)
 
         save_files = [f for f in os.listdir(saves_dir) if f.endswith('.json')]
+        # Опрацювання файлів, формат, що то за файли, де знаходяться - це деталі ралізації, що мають бути сховані в проміжних абстракціях - Pure Fabrication + Information Expert / Strategy Pattern
 
         if not save_files:
             print("Немає доступних збережених ігор!")

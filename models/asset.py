@@ -12,6 +12,7 @@ class Asset(ABC):
         self.current_price = initial_price
         self.initial_price = initial_price
         self.price_history = [(datetime.now(), initial_price)]
+        # Недотримання інкапсуляції дає можливість випадково міняти ціни
 
     def update_price(self, percent_change: float) -> None:
         change_factor = 1 + (percent_change / 100)

@@ -117,3 +117,5 @@ class GameStateAdapter:
                 asset.id = asset_data['id']
                 asset.current_price = asset_data['current_price']
                 game.market.assets[asset.id] = asset
+
+# Точно не Адаптер, бо Адаптер наслідує Target, до якого адаптує Adaptee для того, щоб використовувати Adaptee до Target

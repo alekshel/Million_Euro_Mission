@@ -28,7 +28,7 @@ class TradingGame:
         self.market.generate_random_event()
 
         # Додавання запланованих сюжетних подій з певною ймовірністю
-        if self.story_events and random.random() < 0.2:  # 20% шанс
+        if self.story_events and random.random() < 0.2:  # 20% шанс - так, Magic number + What comment
             event = random.choice(self.story_events)
             self.market.add_event(event)
             self.story_events.remove(event)
@@ -119,6 +119,7 @@ class TradingGame:
             for investor in self.investors:
                 if investor.id == investor_id:
                     return player.return_investment(investor_id, amount)
+        # Знов if-else ladder. Здається, не застосован патерн "Команда"
 
         return False
 
@@ -162,6 +163,7 @@ class TradingGame:
         except Exception as e:
             print(f"Помилка завантаження гри: {e}")
             return False
+    # Не вистачає відокремленой абстракції Saver, що мала б мати конкретні реалізації JSONFileSaver, etc
 
     def modify_game_based_on_feedback(self, feedback_data: Dict) -> None:
         """Модифікація параметрів гри на основі зворотного зв'язку гравців"""
@@ -229,3 +231,6 @@ class TradingGame:
                 for investor in self.investors:
                     investor.satisfaction = min(0.8, investor.satisfaction)
                     investor.risk_tolerance -= 0.1
+        
+        # Та сама проблема з незастосуванням Chain of Responsibility + Interpreter
+        # Купа Магічних чисел
