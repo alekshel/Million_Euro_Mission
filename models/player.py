@@ -72,6 +72,8 @@ class Player(Observer):
                 self.notifications.append(f"ЧУТКА: {rumor.content}")
                 if 'discovered' in kwargs and kwargs['discovered']:
                     self.notifications.append("Чутка була розкрита як неправдива!")
+        # А що заважає реагувати окремо на події, а окремо на чутки? Бо виникають вони окремо, в notify точно відомо що це було. Тоді updateEvent/updateRumor позбудуться цих перевірок та Conditional Complexity smell
+        # Схоже так виходить виключно за бажання уніфікувати патерн Observer, а так не треба, він не передбачає уніфікування.
 
     def set_strategy(self, strategy: TradingStrategy) -> None:
         self.strategy = strategy

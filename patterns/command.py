@@ -43,6 +43,7 @@ class TradeCommand(Command):
 
         self.executed = result
         return result
+# Ну це ж не одна команда - ви тут все в одну заклали. Наслідуйте від TradeCommand BuyCommand, SellCommand, ShortCommand, CoverCommand
 
 
 class SpreadRumorCommand(Command):
